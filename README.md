@@ -4,23 +4,21 @@ As an avid Sims 4 player, I often run into the problem of custom content becomin
 
 ### Objectives:
 * Read filenames
-* Inspects package metadata
-* Detects outdated versions
-* Displays flagged files
+* Inspect package metadata
+* Detect outdated versions
+* Display flagged files
 
 
 ### Tools:
-**Python**: Core logic and file system scanning
-**ttkbootstrap**: GUI framework
-**tkinter**: Styling for widgets
+* **Python**: Core logic and file system scanning
+* **ttkbootstrap**: GUI framework
+* **tkinter**: Styling for widgets
 
 
 ### Future add-ons:
-- Improve UX/UI
-- Release a published version that can be used by the Sims community
+1. Improve UX/UI
+2. Release a published version that can be used by the Sims community
 
 
 ### Privacy:
-- Program will only analyze game files provided by the user
-- Does NOT include EA code or modify Sims 4 game files
-- Works externally
+The program will only analyze game files provided by the user. It does NOT include EA code or modify Sims 4 game files and works externally.
