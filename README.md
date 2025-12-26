@@ -21,4 +21,4 @@ As an avid Sims 4 player, I often run into the problem of custom content becomin
 
 
 ### Privacy:
-The program will only analyze game files provided by the user. It does NOT include EA code or modify Sims 4 game files and works externally.
+The program will only analyze game files provided by the user. It does NOT include EA code or modify Sims 4 game files.
