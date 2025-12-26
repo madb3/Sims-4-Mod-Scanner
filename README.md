@@ -4,5 +4,4 @@
 
 ### Future add-ons:
 #### - Improve UX/UI
-#### - An option to automatically delete files and/or move them into a separate folder
-#### - Release a version that can be downloaded and used by the Sims community
+#### - Release a published version that can be used by the Sims community
