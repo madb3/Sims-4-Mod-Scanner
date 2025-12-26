@@ -17,7 +17,7 @@ As an avid Sims 4 player, I often run into the problem of custom content becomin
 
 ### Future add-ons:
 1. Improve UX/UI
-2. Release a published version that can be used by the Sims community
+2. Publish a version that can be used by the Sims community
 
 
 ### Privacy:
