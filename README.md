@@ -8,6 +8,11 @@
 #### - Detects outdated versions
 #### - Displays flagged files
 
+### Tools:
+#### **Python**: Core logic and file system scanning
+#### **ttkbootstrap**: GUI framework
+#### **tkinter**: Styling for widgets
+
 ### Future add-ons:
 #### - Improve UX/UI
 #### - Release a published version that can be used by the Sims community
