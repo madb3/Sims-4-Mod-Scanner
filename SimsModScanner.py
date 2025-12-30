@@ -7,14 +7,16 @@ from tkinter import filedialog, messagebox
 from tkinter.scrolledtext import ScrolledText
 import ttkbootstrap as tb
 from ttkbootstrap import Style
+import hashlib
 
 class SimsModScanner:
     def __init__(self, root):
         self.root = root
         self.root.title("Sims 4 Mod Scanner")
         self.root.geometry("700x500")
-        self.style = Style("flatly")
+        self.style = Style("vapor")
         self.mods_folder = None
+        self.cancel_scan = False
 
         #Container for pages
         self.container = tb.Frame(root)
@@ -37,24 +39,55 @@ class SimsModScanner:
 
     #Start page
     def create_start_page(self):
-        tb.Label(self.start_page, text="Sims 4 Mod Scanner", font=("Arial", 22, "bold")).pack(pady=40)
+        tb.Label(self.start_page,
+                text="Sims 4 Mod Scanner",
+                foreground="white",
+                font=("Arial", 22, "bold")).pack(pady=40)
 
-        tb.Button(self.start_page, text="Select Mods Folder", command=self.choose_folder, bootstyle="primary outline").pack(pady=10)
-        self.folder_label = tb.Label(self.start_page, text="No folder selected", bootstyle="secondary")
+        tb.Button(self.start_page, text="Select Mods Folder",
+                command=self.choose_folder,
+                bootstyle="primary").pack(pady=10)
+        
+        self.folder_label = tb.Label(self.start_page,
+                                    text="No folder selected",
+                                    bootstyle="secondary")
         self.folder_label.pack(pady=5)
 
-        tb.Button(self.start_page, text="Start Scan", command=self.start_scan_thread, bootstyle="success outline").pack(pady=20)
+        tb.Button(self.start_page,
+                text="Start Scan",
+                command=self.start_scan_thread,
+                bootstyle="success").pack(pady=20)
 
     #Scan page
     def create_scan_page(self):
-        #self.progress = tb.Progressbar(self.scan_page, bootstyle="success-striped", mode="indeterminate", length=500)
-        #self.progress.pack(pady=10)
-        tb.Label(self.scan_page, text="Scan Results", font=("Arial", 16, "bold")).pack(pady=10)
+        tb.Label(self.scan_page,
+                text="Scan Results",
+                font=("Arial", 16, "bold"),
+                foreground="white").pack(pady=10)
 
+        #Progress bar
+        self.progress = tb.Progressbar(
+            self.scan_page,
+            bootstyle="success-striped",
+            mode="determinate",
+            length=500
+        )
+        self.progress.pack(pady=10)
+
+        #Status text
+        self.status_label = tb.Label(self.scan_page, text="Waiting to start...")
+        self.status_label.pack(pady=10)
+
+        #Cancel scan button
+        self.cancel_button = tb.Button(self.scan_page, text="Cancel Scan", command=self.cancel_scan_function, bootstyle="danger")
+        self.cancel_button.pack(pady=10)
+
+        #Output text box
         self.output = ScrolledText(self.scan_page, height=20, font=("Consolas", 11))
         self.output.pack(fill="both", expand=True, pady=10)
-        self.output.bind("<Key>", lambda e: "break")  # make read-only
+        self.output.bind("<Key>", lambda e: "break")
 
+        #Back button
         tb.Button(self.scan_page, text="Back", command=lambda: self.show_frame(self.start_page), bootstyle="secondary").pack(pady=10)
 
     #Folder selection
@@ -66,34 +99,66 @@ class SimsModScanner:
 
     #Start scan
     def start_scan_thread(self):
+        self.cancel_scan = False
         if not self.mods_folder:
             messagebox.showerror("Error", "Please select a folder first.")
             return
         threading.Thread(target=self.scan_mods, daemon=True).start()
 
+    def cancel_scan_function(self):
+        self.cancel_scan = True
+        self.status_label.config(text="Scan cancelled!")
+
     #Scan mods
     def scan_mods(self):
         self.show_frame(self.scan_page)
-        #self.progress.start()
         self.output.delete("1.0", tk.END)
-        self.output.insert(tk.END, "Scanning...\n\n")
 
-        broken_files = 0
-        total_files = 0
-        buffer = []
+        total_files = 0 #Total number of files in mod folder
+        for _, _, files in os.walk(self.mods_folder):
+            total_files += len(files)
+        
+        self.progress.configure(maximum=total_files, value=0)
+
+        #Scan variables
+        broken_files = 0 #Total number of broken files
+        scanned = 0 #Number of files scanned
+        duplicates = 0 #Number of duplicate files
+        buffer = [] #Buffer for output
+        hashes_seen = {} #Dictionary of hashes
 
         for root_dir, _, files in os.walk(self.mods_folder):
             for f in files:
-                total_files += 1
+                if self.cancel_scan:
+                    self.output.insert(tk.END, "Scan cancelled\n")
+                    self.root.update_idletasks()
+                    return
+                scanned += 1
                 file_path = os.path.join(root_dir, f)
+
+                #Update progress
+                self.status_label.config(foreground="white",text=f"Scanning... {scanned} / {total_files}")
+                self.progress.configure(value=scanned)
+                self.root.update_idletasks()
+
                 try:
                     size = os.path.getsize(file_path)
                 except Exception:
                     continue
 
-                #Zero byte files (empty?)
+                #Compute hash
+                file_hash = self.hash_file(file_path)
+
+                #Detect duplicates
+                if file_hash in hashes_seen:
+                    buffer.append(f"[DUPLICATE] {f}\n")
+                    duplicates += 1
+                else:
+                    hashes_seen[file_hash] = f
+
+                #Zero byte files (possibly empty?)
                 if size == 0:
-                    buffer.append(f"[BROKEN] {f} (0 bytes)")
+                    buffer.append(f"[BROKEN] {f} (0 bytes)\n")
                     broken_files += 1
 
                 #Scan .ts4script files (mods)
@@ -103,31 +168,36 @@ class SimsModScanner:
 
                 #Scan .package files (cc)
                 elif f.lower().endswith(".package") and not self.check_package_advanced(file_path):
-                    buffer.append(f"[CORRUPT PACKAGE] {f}")
+                    buffer.append(f"[CORRUPT PACKAGE] {f}\n")
                     broken_files += 1
 
                 #Detect suspiciously large files (over 500MB)
                 elif size > 500 * 1024 * 1024:
-                    buffer.append(f"[SUSPICIOUS] {f} (Very large)")
+                    buffer.append(f"[SUSPICIOUS] {f} (Very large)\n")
 
-                #Batch insert every 50 lines
+                #Batch insert every 50 lines to avoid lag or crashes
                 if len(buffer) >= 50:
                     self.output.insert(tk.END, "\n".join(buffer) + "\n")
                     self.output.see(tk.END)
                     buffer.clear()
+        
+        summary = (
+            f"Scan Complete\n"
+            f"Total Files: {total_files}\n"
+            f"Broken Files: {broken_files}\n"
+            f"Duplicate Files: {duplicates}\n\n"
+        )
+
+        self.output.insert("1.0", summary)
 
         #Insert remaining files
         if buffer:
             self.output.insert(tk.END, "\n".join(buffer) + "\n")
             self.output.see(tk.END)
 
-        self.output.insert(tk.END, f"\nScan Complete\n")
-        self.output.insert(tk.END, f"Total Files: {total_files}\n")
-        self.output.insert(tk.END, f"Broken Files: {broken_files}\n")
+        self.status_label.config(text="Scan Complete!")
 
-        #self.progress.stop()
-
-    #File checks
+    #Check different types of files (zip files, package files, scripts)
     def check_zip(self, file_path):
         try:
             with zipfile.ZipFile(file_path, "r") as z:
@@ -144,6 +214,17 @@ class SimsModScanner:
             return True
         except:
             return False
+        
+    #Hash files using md5
+    def hash_file(self, file_path):
+        hash_md5 = hashlib.md5()
+        try:
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    hash_md5.update(chunk)
+            return hash_md5.hexdigest()
+        except:
+            return None
 
 
 #Run the app
