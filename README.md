@@ -4,8 +4,8 @@ As an avid Sims 4 player, I often run into the problem of custom content becomin
 
 ### Objectives:
 * Read filenames
-* Inspect package metadata
-* Detect outdated versions
+* Inspect package metadata to identify flaws
+* Detect outdated versions and duplicate files that may prevent the content from working in-game
 * Display flagged files
 
 
@@ -17,7 +17,7 @@ As an avid Sims 4 player, I often run into the problem of custom content becomin
 
 ### Future add-ons:
 1. Improve UX/UI
-2. Publish a version that can be used by the Sims community
+2. Publish a version that can be used by the community
 
 
 ### Privacy:
